@@ -1,0 +1,2464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Investigation Intelligence Workspace — B-1043</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F6F3;
+  --panel:#FFFFFF;
+  --ink:#1B2226;
+  --ink-soft:#4B565C;
+  --ink-faint:#7C8790;
+  --line:#DADFDC;
+  --line-soft:#E7EAE7;
+  --accent:#2E6B76;      /* evidence / system teal */
+  --accent-soft:#E4EEEF;
+  --flag:#A64B24;        /* OOS / attention */
+  --flag-soft:#F5E6DE;
+  --flag-soft-line:#E7C4AF;
+  --good:#3F7256;
+  --good-soft:#E4EFE7;
+  --amber:#8A6A1A;
+  --amber-soft:#F3EBD3;
+  --radius:3px;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;}
+a{color:inherit;}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;
+  background:var(--panel);
+  border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:50;
+}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.topbar-mark{
+  width:28px;height:28px;border:1.5px solid var(--ink);border-radius:2px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;font-weight:600;
+}
+.topbar-title{font-weight:600;font-size:15px;letter-spacing:0.1px;}
+.topbar-sub{color:var(--ink-faint);font-size:12.5px;margin-top:1px;}
+.topbar-right{display:flex;align-items:center;gap:18px;color:var(--ink-soft);font-size:12.5px;}
+.topbar-right .site{font-family:var(--mono);}
+.topbar-divider{width:1px;height:18px;background:var(--line);}
+.user-chip{display:flex;align-items:center;gap:8px;}
+.avatar{width:24px;height:24px;border-radius:50%;background:#DCE3E0;color:var(--ink-soft);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;}
+
+/* ---------- App shell ---------- */
+.shell{max-width:1240px;margin:0 auto;padding:0 28px 80px;}
+.crumbs{display:flex;align-items:center;gap:8px;color:var(--ink-faint);font-size:12.5px;padding:18px 0 0;}
+.crumbs button{background:none;border:none;color:var(--ink-faint);padding:0;font-size:12.5px;}
+.crumbs button:hover{color:var(--ink);text-decoration:underline;}
+.crumbs .sep{color:var(--line);}
+.crumbs .current{color:var(--ink);font-weight:500;}
+
+/* ---------- Section nav (inside investigation) ---------- */
+.inv-header{padding:18px 0 0;}
+.inv-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+.inv-title{display:flex;align-items:baseline;gap:12px;}
+.inv-title h1{font-size:26px;margin:0;font-weight:600;letter-spacing:-0.2px;}
+.status-pill{
+  font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:0.3px;
+  padding:3px 9px;border-radius:2px;border:1px solid transparent;
+}
+.status-pill.oos{background:var(--flag-soft);color:var(--flag);border-color:var(--flag-soft-line);}
+.status-pill.pass{background:var(--good-soft);color:var(--good);}
+.inv-meta{color:var(--ink-faint);font-size:12.5px;margin-top:4px;}
+
+.section-nav{
+  display:flex;gap:2px;margin-top:22px;border-bottom:1px solid var(--line);
+}
+.section-nav button{
+  background:none;border:none;padding:11px 4px;margin-right:26px;
+  font-size:13.5px;color:var(--ink-faint);border-bottom:2px solid transparent;
+  transform:translateY(1px);
+}
+.section-nav button:hover{color:var(--ink);}
+.section-nav button.active{color:var(--ink);border-bottom-color:var(--ink);font-weight:600;}
+
+.section-body{padding-top:28px;}
+
+/* ---------- Generic building blocks ---------- */
+.panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+}
+.panel-head{
+  padding:14px 18px;border-bottom:1px solid var(--line-soft);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.panel-head h3{margin:0;font-size:13.5px;font-weight:600;}
+.panel-head .hint{color:var(--ink-faint);font-size:12px;}
+.panel-body{padding:18px;}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+
+.kv{display:grid;grid-template-columns:140px 1fr;gap:8px 12px;font-size:13.5px;}
+.kv dt{color:var(--ink-faint);}
+.kv dd{margin:0;font-weight:500;}
+.mono{font-family:var(--mono);}
+
+.tag{
+  display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-family:var(--mono);
+  padding:2px 7px;border-radius:2px;border:1px solid var(--line);color:var(--ink-soft);background:#FAFAF8;
+}
+.tag.accent{border-color:#BFD6D9;background:var(--accent-soft);color:var(--accent);}
+.tag.flag{border-color:var(--flag-soft-line);background:var(--flag-soft);color:var(--flag);}
+
+.btn{
+  border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  padding:8px 14px;border-radius:2px;font-size:13px;font-weight:500;
+}
+.btn:hover{border-color:var(--ink-faint);}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+.btn.primary:hover{background:#000;}
+.btn.subtle{border-color:transparent;background:none;color:var(--accent);padding:8px 4px;}
+.btn.subtle:hover{text-decoration:underline;}
+
+table{border-collapse:collapse;width:100%;font-size:13.5px;}
+th{
+  text-align:left;font-weight:500;color:var(--ink-faint);font-size:12px;
+  padding:8px 10px;border-bottom:1px solid var(--line);
+}
+td{padding:9px 10px;border-bottom:1px solid var(--line-soft);}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:#FAFAF7;}
+.num{font-family:var(--mono);text-align:right;}
+
+.delta-up{color:var(--flag);}
+.delta-ok{color:var(--ink-soft);}
+
+/* Evidence connector flow */
+.flow{position:relative;padding-left:26px;}
+.flow-item{position:relative;padding-bottom:26px;}
+.flow-item:last-child{padding-bottom:0;}
+.flow-dot{
+  position:absolute;left:-26px;top:2px;width:11px;height:11px;border-radius:50%;
+  background:var(--panel);border:2px solid var(--accent);
+}
+.flow-item:not(:last-child)::before{
+  content:"";position:absolute;left:-21px;top:15px;bottom:-13px;width:1px;background:var(--line);
+}
+.flow-label{font-size:11px;text-transform:none;color:var(--accent);font-weight:600;letter-spacing:0.2px;margin-bottom:4px;}
+.flow-title{font-weight:600;font-size:14px;margin-bottom:4px;}
+.flow-text{color:var(--ink-soft);font-size:13.5px;}
+.flow-source{margin-top:7px;}
+
+/* Historical batch comparison cards */
+.hist-card{
+  border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
+  padding:16px 18px;display:flex;flex-direction:column;gap:10px;
+}
+.hist-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.hist-card-id{font-family:var(--mono);font-weight:600;font-size:14.5px;}
+.hist-card-why{font-size:13px;color:var(--ink-soft);line-height:1.5;}
+.hist-card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
+
+.category-chip{
+  font-size:11px;font-family:var(--mono);padding:2px 7px;border-radius:2px;
+}
+.category-chip.material{background:#EFE7D8;color:#7A5B1C;}
+.category-chip.equipment{background:#E1E7EC;color:#3C5670;}
+.category-chip.process{background:var(--accent-soft);color:var(--accent);}
+.category-chip.laboratory{background:#EAE4EE;color:#5F4770;}
+.category-chip.none{background:#EEE;color:#777;}
+
+/* Investigation record card */
+.inv-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);}
+.inv-card-head{
+  display:flex;align-items:center;justify-content:space-between;padding:14px 18px;
+  border-bottom:1px solid var(--line-soft);cursor:pointer;
+}
+.inv-card-head:hover{background:#FAFAF7;}
+.inv-card-head-left{display:flex;align-items:center;gap:12px;}
+.inv-card-body{padding:16px 18px;display:none;}
+.inv-card-body.open{display:block;}
+.inv-card.expanded .inv-card-body{display:block;}
+.chev{transition:transform .15s ease;color:var(--ink-faint);}
+.inv-card.expanded .chev{transform:rotate(90deg);}
+
+/* AI assist strip - deliberately understated */
+.assist-strip{
+  border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius);
+  background:var(--panel);padding:14px 18px;display:flex;gap:14px;align-items:flex-start;
+}
+.assist-strip .assist-icon{
+  width:20px;height:20px;flex:none;margin-top:1px;color:var(--accent);
+}
+.assist-strip .assist-label{font-size:11px;font-weight:600;color:var(--accent);letter-spacing:.2px;margin-bottom:3px;}
+.assist-strip p{margin:0;color:var(--ink-soft);font-size:13.5px;line-height:1.55;}
+
+/* caution / disclaimer banner */
+.caution{
+  display:flex;gap:10px;align-items:flex-start;
+  background:var(--amber-soft);border:1px solid #E0D2A0;border-radius:var(--radius);
+  padding:12px 16px;font-size:13px;color:#5F4A14;
+}
+
+/* Overlay panel for historical batch / investigation detail */
+.overlay-scrim{
+  position:fixed;inset:0;background:rgba(20,24,22,0.28);z-index:100;
+  opacity:0;pointer-events:none;transition:opacity .18s ease;
+}
+.overlay-scrim.open{opacity:1;pointer-events:auto;}
+.overlay-panel{
+  position:fixed;top:0;right:0;bottom:0;width:min(560px,92vw);
+  background:var(--panel);z-index:101;box-shadow:-8px 0 28px rgba(0,0,0,0.10);
+  transform:translateX(100%);transition:transform .2s ease;
+  display:flex;flex-direction:column;
+}
+.overlay-panel.open{transform:translateX(0);}
+.overlay-head{
+  padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;
+}
+.overlay-head h2{margin:0;font-size:17px;font-weight:600;}
+.overlay-close{background:none;border:none;font-size:20px;color:var(--ink-faint);line-height:1;padding:4px;}
+.overlay-close:hover{color:var(--ink);}
+.overlay-body{padding:20px 22px;overflow-y:auto;flex:1;}
+
+.small-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-faint);font-weight:600;margin-bottom:6px;}
+.divider{height:1px;background:var(--line-soft);margin:18px 0;}
+
+.stat-block{border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;}
+.stat-block .num-lg{font-family:var(--mono);font-size:24px;font-weight:600;}
+.stat-block .num-label{color:var(--ink-faint);font-size:12px;margin-top:2px;}
+
+/* Workspace (landing) screen */
+.ws-hero{
+  border:1px solid var(--flag-soft-line);background:var(--flag-soft);border-radius:var(--radius);
+  padding:22px 24px;margin-top:20px;display:flex;justify-content:space-between;gap:24px;align-items:flex-start;
+}
+.ws-hero-left{max-width:640px;}
+.ws-hero-eyebrow{font-family:var(--mono);font-size:11.5px;color:var(--flag);font-weight:600;letter-spacing:.3px;margin-bottom:8px;}
+.ws-hero h2{margin:4px 0 8px;font-size:21px;font-weight:600;}
+.ws-hero p{margin:0;color:#6B4128;font-size:13.5px;line-height:1.55;}
+.ws-hero-stats{display:flex;gap:26px;margin-top:16px;}
+.ws-hero-stat .n{font-family:var(--mono);font-size:19px;font-weight:600;color:var(--flag);}
+.ws-hero-stat .l{font-size:11.5px;color:#6B4128;}
+
+.queue-section{margin-top:34px;}
+.queue-section h3{font-size:14px;font-weight:600;margin:0 0 12px;}
+.queue-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 4px;border-bottom:1px solid var(--line-soft);
+}
+.queue-row:last-child{border-bottom:none;}
+.queue-row-left{display:flex;align-items:center;gap:14px;}
+.queue-id{font-family:var(--mono);font-weight:600;font-size:13.5px;width:70px;}
+.queue-meta{color:var(--ink-faint);font-size:12.5px;}
+.queue-outcome{font-size:12.5px;color:var(--good);}
+
+footer.foot{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink-faint);font-size:12px;}
+
+@media (max-width:860px){
+  .grid-2{grid-template-columns:1fr;}
+  .grid-3{grid-template-columns:1fr;}
+  .shell{padding:0 16px 60px;}
+  .topbar{padding:12px 16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-mark">BI</div>
+    <div>
+      <div class="topbar-title">Investigation Intelligence</div>
+      <div class="topbar-sub">Batch quality &amp; deviation workspace</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="site">SITE-01</span>
+    <div class="topbar-divider"></div>
+    <span>PROD-001 · Product Purity Program</span>
+    <div class="topbar-divider"></div>
+    <div class="user-chip"><div class="avatar">JT</div><span>J. Torres, Investigator</span></div>
+  </div>
+</div>
+
+<div class="shell" id="shell">
+  <!-- rendered by JS -->
+</div>
+
+<div class="overlay-scrim" id="scrim"></div>
+<div class="overlay-panel" id="overlay">
+  <div class="overlay-head">
+    <h2 id="overlay-title">Detail</h2>
+    <button class="overlay-close" id="overlay-close">&times;</button>
+  </div>
+  <div class="overlay-body" id="overlay-body"></div>
+</div>
+
+<script id="proto-data" type="application/json">
+{
+"batches":{
+"B-1043":{
+"batch":{
+"Batch_ID":"B-1043",
+"Product_ID":"PROD-001",
+"Site_ID":"SITE-01",
+"Batch_Date":"2026-05-14",
+"Batch_Size":1000,
+"Unit_of_Measure":"L",
+"Equipment_ID":"EQ-007",
+"Material_Lot_ID":"ML-082",
+"Batch_Status":"Under Investigation",
+"Overall_Result":"OOS"
+},
+"material_lot":{
+"Material_Lot_ID":"ML-082",
+"Material_ID":"MAT-010",
+"Supplier_ID":"SUP-010",
+"Manufacturing_Date":"2026-08-09",
+"Receipt_Date":"2026-09-03",
+"Expiry_Date":"2027-08-09",
+"Attribute_A":10.46,
+"Attribute_B":98.44,
+"Release_Status":"Released"
+},
+"material":{
+"Material_ID":"MAT-010",
+"Material_Name":"Raw Material 10",
+"Material_Type":"Raw Material",
+"Supplier_ID":"SUP-010",
+"Specification_ID":"SPEC-010",
+"Unit_of_Measure":"kg",
+"Material_Status":"Active"
+},
+"equipment":{
+"Equipment_ID":"EQ-007",
+"Equipment_Type":"Bioreactor",
+"Site_ID":"SITE-01",
+"Configuration_ID":"CONFIG-B",
+"Capacity":1500,
+"Unit_of_Measure":"L",
+"Equipment_Status":"Active",
+"Last_Maintenance_Date":"2026-04-08",
+"Last_Calibration_Date":"2026-04-17"
+},
+"process_parameters":[
+{
+"Process_Record_ID":"PR-00505",
+"Batch_ID":"B-1043",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Temperature",
+"Target_Value":37,
+"Actual_Value":38.4,
+"Lower_Limit":35,
+"Upper_Limit":39,
+"Unit":"\u00b0C",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00506",
+"Batch_ID":"B-1043",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"pH",
+"Target_Value":7,
+"Actual_Value":7.18,
+"Lower_Limit":6.8,
+"Upper_Limit":7.2,
+"Unit":"pH",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00507",
+"Batch_ID":"B-1043",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Mixing Time",
+"Target_Value":40,
+"Actual_Value":43,
+"Lower_Limit":35,
+"Upper_Limit":45,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00508",
+"Batch_ID":"B-1043",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Pressure",
+"Target_Value":1,
+"Actual_Value":1.12,
+"Lower_Limit":0.8,
+"Upper_Limit":1.2,
+"Unit":"bar",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00509",
+"Batch_ID":"B-1043",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Flow Rate",
+"Target_Value":25,
+"Actual_Value":23.69,
+"Lower_Limit":20,
+"Upper_Limit":30,
+"Unit":"L/min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00510",
+"Batch_ID":"B-1043",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Hold Time",
+"Target_Value":60,
+"Actual_Value":61.04,
+"Lower_Limit":50,
+"Upper_Limit":70,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00511",
+"Batch_ID":"B-1043",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Conductivity",
+"Target_Value":5,
+"Actual_Value":5.1,
+"Lower_Limit":4,
+"Upper_Limit":6,
+"Unit":"mS/cm",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00512",
+"Batch_ID":"B-1043",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Filter Pressure",
+"Target_Value":1.5,
+"Actual_Value":1.34,
+"Lower_Limit":1,
+"Upper_Limit":2,
+"Unit":"bar",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00513",
+"Batch_ID":"B-1043",
+"Process_Step":"Formulation",
+"Parameter_Name":"Temperature",
+"Target_Value":20,
+"Actual_Value":20.5,
+"Lower_Limit":18,
+"Upper_Limit":22,
+"Unit":"\u00b0C",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00514",
+"Batch_ID":"B-1043",
+"Process_Step":"Formulation",
+"Parameter_Name":"Mixing Time",
+"Target_Value":30,
+"Actual_Value":30.63,
+"Lower_Limit":25,
+"Upper_Limit":35,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00515",
+"Batch_ID":"B-1043",
+"Process_Step":"Formulation",
+"Parameter_Name":"pH",
+"Target_Value":6.9,
+"Actual_Value":6.87,
+"Lower_Limit":6.7,
+"Upper_Limit":7.1,
+"Unit":"pH",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+},
+{
+"Process_Record_ID":"PR-00516",
+"Batch_ID":"B-1043",
+"Process_Step":"Formulation",
+"Parameter_Name":"Fill Rate",
+"Target_Value":100,
+"Actual_Value":101.51,
+"Lower_Limit":90,
+"Upper_Limit":110,
+"Unit":"units/min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-05-14"
+}
+],
+"quality_results":[
+{
+"Quality_Record_ID":"QR-00169",
+"Batch_ID":"B-1043",
+"Attribute_ID":"CQA-001",
+"Attribute_Name":"Product Purity",
+"Result_Value":92.4,
+"Specification_Lower":95,
+"Specification_Upper":100,
+"Unit":"%",
+"Result_Status":"OOS",
+"Test_Date":"2026-05-15"
+},
+{
+"Quality_Record_ID":"QR-00170",
+"Batch_ID":"B-1043",
+"Attribute_ID":"CQA-002",
+"Attribute_Name":"Potency",
+"Result_Value":97.22,
+"Specification_Lower":90,
+"Specification_Upper":110,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-05-17"
+},
+{
+"Quality_Record_ID":"QR-00171",
+"Batch_ID":"B-1043",
+"Attribute_ID":"CQA-003",
+"Attribute_Name":"Aggregate Level",
+"Result_Value":2.17,
+"Specification_Lower":0,
+"Specification_Upper":5,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-05-16"
+},
+{
+"Quality_Record_ID":"QR-00172",
+"Batch_ID":"B-1043",
+"Attribute_ID":"CQA-004",
+"Attribute_Name":"pH",
+"Result_Value":6.9,
+"Specification_Lower":6.7,
+"Specification_Upper":7.2,
+"Unit":"pH",
+"Result_Status":"Pass",
+"Test_Date":"2026-05-15"
+}
+],
+"deviations":[
+{
+"Deviation_ID":"DEV-041",
+"Batch_ID":"B-1043",
+"Category":"Process",
+"Severity":"Minor",
+"Description":"Temperature trend higher than historical pattern",
+"Status":"Closed",
+"Resolution":"Process reviewed"
+}
+],
+"investigations":[]
+},
+"B-1017":{
+"batch":{
+"Batch_ID":"B-1017",
+"Product_ID":"PROD-001",
+"Site_ID":"SITE-01",
+"Batch_Date":"2026-02-25",
+"Batch_Size":1000,
+"Unit_of_Measure":"L",
+"Equipment_ID":"EQ-005",
+"Material_Lot_ID":"ML-017",
+"Batch_Status":"Released",
+"Overall_Result":"Pass"
+},
+"material_lot":{
+"Material_Lot_ID":"ML-017",
+"Material_ID":"MAT-002",
+"Supplier_ID":"SUP-002",
+"Manufacturing_Date":"2026-01-26",
+"Receipt_Date":"2026-02-20",
+"Expiry_Date":"2027-01-26",
+"Attribute_A":11.7,
+"Attribute_B":97.4,
+"Release_Status":"Released"
+},
+"material":{
+"Material_ID":"MAT-002",
+"Material_Name":"Raw Material 2",
+"Material_Type":"Raw Material",
+"Supplier_ID":"SUP-002",
+"Specification_ID":"SPEC-002",
+"Unit_of_Measure":"kg",
+"Material_Status":"Active"
+},
+"equipment":{
+"Equipment_ID":"EQ-005",
+"Equipment_Type":"Bioreactor",
+"Site_ID":"SITE-01",
+"Configuration_ID":"CONFIG-A",
+"Capacity":1500,
+"Unit_of_Measure":"L",
+"Equipment_Status":"Active",
+"Last_Maintenance_Date":"2026-04-06",
+"Last_Calibration_Date":"2026-04-15"
+},
+"process_parameters":[
+{
+"Process_Record_ID":"PR-00193",
+"Batch_ID":"B-1017",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Temperature",
+"Target_Value":37,
+"Actual_Value":38.1,
+"Lower_Limit":35,
+"Upper_Limit":39,
+"Unit":"\u00b0C",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00194",
+"Batch_ID":"B-1017",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"pH",
+"Target_Value":7,
+"Actual_Value":7.16,
+"Lower_Limit":6.8,
+"Upper_Limit":7.2,
+"Unit":"pH",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00195",
+"Batch_ID":"B-1017",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Mixing Time",
+"Target_Value":40,
+"Actual_Value":38.12,
+"Lower_Limit":35,
+"Upper_Limit":45,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00196",
+"Batch_ID":"B-1017",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Pressure",
+"Target_Value":1,
+"Actual_Value":0.96,
+"Lower_Limit":0.8,
+"Upper_Limit":1.2,
+"Unit":"bar",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00197",
+"Batch_ID":"B-1017",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Flow Rate",
+"Target_Value":25,
+"Actual_Value":23.66,
+"Lower_Limit":20,
+"Upper_Limit":30,
+"Unit":"L/min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00198",
+"Batch_ID":"B-1017",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Hold Time",
+"Target_Value":60,
+"Actual_Value":59.68,
+"Lower_Limit":50,
+"Upper_Limit":70,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00199",
+"Batch_ID":"B-1017",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Conductivity",
+"Target_Value":5,
+"Actual_Value":5.27,
+"Lower_Limit":4,
+"Upper_Limit":6,
+"Unit":"mS/cm",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00200",
+"Batch_ID":"B-1017",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Filter Pressure",
+"Target_Value":1.5,
+"Actual_Value":1.5,
+"Lower_Limit":1,
+"Upper_Limit":2,
+"Unit":"bar",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00201",
+"Batch_ID":"B-1017",
+"Process_Step":"Formulation",
+"Parameter_Name":"Temperature",
+"Target_Value":20,
+"Actual_Value":19.5,
+"Lower_Limit":18,
+"Upper_Limit":22,
+"Unit":"\u00b0C",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00202",
+"Batch_ID":"B-1017",
+"Process_Step":"Formulation",
+"Parameter_Name":"Mixing Time",
+"Target_Value":30,
+"Actual_Value":30.24,
+"Lower_Limit":25,
+"Upper_Limit":35,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00203",
+"Batch_ID":"B-1017",
+"Process_Step":"Formulation",
+"Parameter_Name":"pH",
+"Target_Value":6.9,
+"Actual_Value":6.92,
+"Lower_Limit":6.7,
+"Upper_Limit":7.1,
+"Unit":"pH",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+},
+{
+"Process_Record_ID":"PR-00204",
+"Batch_ID":"B-1017",
+"Process_Step":"Formulation",
+"Parameter_Name":"Fill Rate",
+"Target_Value":100,
+"Actual_Value":100.9,
+"Lower_Limit":90,
+"Upper_Limit":110,
+"Unit":"units/min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-02-25"
+}
+],
+"quality_results":[
+{
+"Quality_Record_ID":"QR-00065",
+"Batch_ID":"B-1017",
+"Attribute_ID":"CQA-001",
+"Attribute_Name":"Product Purity",
+"Result_Value":93.1,
+"Specification_Lower":95,
+"Specification_Upper":100,
+"Unit":"%",
+"Result_Status":"OOS",
+"Test_Date":"2026-02-26"
+},
+{
+"Quality_Record_ID":"QR-00066",
+"Batch_ID":"B-1017",
+"Attribute_ID":"CQA-002",
+"Attribute_Name":"Potency",
+"Result_Value":99.8,
+"Specification_Lower":90,
+"Specification_Upper":110,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-02-26"
+},
+{
+"Quality_Record_ID":"QR-00067",
+"Batch_ID":"B-1017",
+"Attribute_ID":"CQA-003",
+"Attribute_Name":"Aggregate Level",
+"Result_Value":1.95,
+"Specification_Lower":0,
+"Specification_Upper":5,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-02-27"
+},
+{
+"Quality_Record_ID":"QR-00068",
+"Batch_ID":"B-1017",
+"Attribute_ID":"CQA-004",
+"Attribute_Name":"pH",
+"Result_Value":6.98,
+"Specification_Lower":6.7,
+"Specification_Upper":7.2,
+"Unit":"pH",
+"Result_Status":"Pass",
+"Test_Date":"2026-02-27"
+}
+],
+"deviations":[
+{
+"Deviation_ID":"DEV-017",
+"Batch_ID":"B-1017",
+"Category":"Material",
+"Severity":"Moderate",
+"Description":"Material Attribute A above historical range",
+"Status":"Closed",
+"Resolution":"Material lot reviewed"
+}
+],
+"investigations":[
+{
+"Investigation_ID":"INV-017",
+"Batch_ID":"B-1017",
+"Investigation_Type":"OOS",
+"Issue":"Product Purity",
+"Finding":"Material Attribute A was elevated compared with historical range",
+"Evidence":"Attribute A = 11.7 versus historical median around 10.4",
+"Root_Cause_Category":"Material",
+"Corrective_Action":"Material lot reviewed and supplier information assessed",
+"Outcome":"Resolved",
+"Closure_Date":"2026-03-07"
+}
+]
+},
+"B-1028":{
+"batch":{
+"Batch_ID":"B-1028",
+"Product_ID":"PROD-001",
+"Site_ID":"SITE-01",
+"Batch_Date":"2026-03-30",
+"Batch_Size":1000,
+"Unit_of_Measure":"L",
+"Equipment_ID":"EQ-007",
+"Material_Lot_ID":"ML-028",
+"Batch_Status":"Released",
+"Overall_Result":"Pass"
+},
+"material_lot":{
+"Material_Lot_ID":"ML-028",
+"Material_ID":"MAT-010",
+"Supplier_ID":"SUP-010",
+"Manufacturing_Date":"2026-02-28",
+"Receipt_Date":"2026-03-25",
+"Expiry_Date":"2027-02-28",
+"Attribute_A":10.63,
+"Attribute_B":98.19,
+"Release_Status":"Released"
+},
+"material":{
+"Material_ID":"MAT-010",
+"Material_Name":"Raw Material 10",
+"Material_Type":"Raw Material",
+"Supplier_ID":"SUP-010",
+"Specification_ID":"SPEC-010",
+"Unit_of_Measure":"kg",
+"Material_Status":"Active"
+},
+"equipment":{
+"Equipment_ID":"EQ-007",
+"Equipment_Type":"Bioreactor",
+"Site_ID":"SITE-01",
+"Configuration_ID":"CONFIG-B",
+"Capacity":1500,
+"Unit_of_Measure":"L",
+"Equipment_Status":"Active",
+"Last_Maintenance_Date":"2026-04-08",
+"Last_Calibration_Date":"2026-04-17"
+},
+"process_parameters":[
+{
+"Process_Record_ID":"PR-00325",
+"Batch_ID":"B-1028",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Temperature",
+"Target_Value":37,
+"Actual_Value":38.2,
+"Lower_Limit":35,
+"Upper_Limit":39,
+"Unit":"\u00b0C",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00326",
+"Batch_ID":"B-1028",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"pH",
+"Target_Value":7,
+"Actual_Value":7.1,
+"Lower_Limit":6.8,
+"Upper_Limit":7.2,
+"Unit":"pH",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00327",
+"Batch_ID":"B-1028",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Mixing Time",
+"Target_Value":40,
+"Actual_Value":39.52,
+"Lower_Limit":35,
+"Upper_Limit":45,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00328",
+"Batch_ID":"B-1028",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Pressure",
+"Target_Value":1,
+"Actual_Value":1,
+"Lower_Limit":0.8,
+"Upper_Limit":1.2,
+"Unit":"bar",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00329",
+"Batch_ID":"B-1028",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Flow Rate",
+"Target_Value":25,
+"Actual_Value":26.28,
+"Lower_Limit":20,
+"Upper_Limit":30,
+"Unit":"L/min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00330",
+"Batch_ID":"B-1028",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Hold Time",
+"Target_Value":60,
+"Actual_Value":56.91,
+"Lower_Limit":50,
+"Upper_Limit":70,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00331",
+"Batch_ID":"B-1028",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Conductivity",
+"Target_Value":5,
+"Actual_Value":4.9,
+"Lower_Limit":4,
+"Upper_Limit":6,
+"Unit":"mS/cm",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00332",
+"Batch_ID":"B-1028",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Filter Pressure",
+"Target_Value":1.5,
+"Actual_Value":1.48,
+"Lower_Limit":1,
+"Upper_Limit":2,
+"Unit":"bar",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00333",
+"Batch_ID":"B-1028",
+"Process_Step":"Formulation",
+"Parameter_Name":"Temperature",
+"Target_Value":20,
+"Actual_Value":19.98,
+"Lower_Limit":18,
+"Upper_Limit":22,
+"Unit":"\u00b0C",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00334",
+"Batch_ID":"B-1028",
+"Process_Step":"Formulation",
+"Parameter_Name":"Mixing Time",
+"Target_Value":30,
+"Actual_Value":30.64,
+"Lower_Limit":25,
+"Upper_Limit":35,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00335",
+"Batch_ID":"B-1028",
+"Process_Step":"Formulation",
+"Parameter_Name":"pH",
+"Target_Value":6.9,
+"Actual_Value":6.9,
+"Lower_Limit":6.7,
+"Upper_Limit":7.1,
+"Unit":"pH",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+},
+{
+"Process_Record_ID":"PR-00336",
+"Batch_ID":"B-1028",
+"Process_Step":"Formulation",
+"Parameter_Name":"Fill Rate",
+"Target_Value":100,
+"Actual_Value":98.05,
+"Lower_Limit":90,
+"Upper_Limit":110,
+"Unit":"units/min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-03-30"
+}
+],
+"quality_results":[
+{
+"Quality_Record_ID":"QR-00109",
+"Batch_ID":"B-1028",
+"Attribute_ID":"CQA-001",
+"Attribute_Name":"Product Purity",
+"Result_Value":94,
+"Specification_Lower":95,
+"Specification_Upper":100,
+"Unit":"%",
+"Result_Status":"OOS",
+"Test_Date":"2026-04-02"
+},
+{
+"Quality_Record_ID":"QR-00110",
+"Batch_ID":"B-1028",
+"Attribute_ID":"CQA-002",
+"Attribute_Name":"Potency",
+"Result_Value":96.05,
+"Specification_Lower":90,
+"Specification_Upper":110,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-04-01"
+},
+{
+"Quality_Record_ID":"QR-00111",
+"Batch_ID":"B-1028",
+"Attribute_ID":"CQA-003",
+"Attribute_Name":"Aggregate Level",
+"Result_Value":1.85,
+"Specification_Lower":0,
+"Specification_Upper":5,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-04-02"
+},
+{
+"Quality_Record_ID":"QR-00112",
+"Batch_ID":"B-1028",
+"Attribute_ID":"CQA-004",
+"Attribute_Name":"pH",
+"Result_Value":6.89,
+"Specification_Lower":6.7,
+"Specification_Upper":7.2,
+"Unit":"pH",
+"Result_Status":"Pass",
+"Test_Date":"2026-04-01"
+}
+],
+"deviations":[
+{
+"Deviation_ID":"DEV-028",
+"Batch_ID":"B-1028",
+"Category":"Equipment",
+"Severity":"Minor",
+"Description":"Equipment configuration differed from standard setup",
+"Status":"Closed",
+"Resolution":"Equipment assessment completed"
+}
+],
+"investigations":[
+{
+"Investigation_ID":"INV-021",
+"Batch_ID":"B-1028",
+"Investigation_Type":"OOS",
+"Issue":"Product Purity",
+"Finding":"Equipment configuration differed from most comparable batches",
+"Evidence":"EQ-008 used CONFIG-B; comparable successful batches primarily used CONFIG-A",
+"Root_Cause_Category":"Equipment",
+"Corrective_Action":"Equipment configuration assessed",
+"Outcome":"Resolved",
+"Closure_Date":"2026-04-12"
+}
+]
+},
+"B-1031":{
+"batch":{
+"Batch_ID":"B-1031",
+"Product_ID":"PROD-001",
+"Site_ID":"SITE-01",
+"Batch_Date":"2026-04-08",
+"Batch_Size":1000,
+"Unit_of_Measure":"L",
+"Equipment_ID":"EQ-005",
+"Material_Lot_ID":"ML-031",
+"Batch_Status":"Released",
+"Overall_Result":"Pass"
+},
+"material_lot":{
+"Material_Lot_ID":"ML-031",
+"Material_ID":"MAT-006",
+"Supplier_ID":"SUP-006",
+"Manufacturing_Date":"2026-03-09",
+"Receipt_Date":"2026-04-03",
+"Expiry_Date":"2027-03-09",
+"Attribute_A":10.6,
+"Attribute_B":98.34,
+"Release_Status":"Released"
+},
+"material":{
+"Material_ID":"MAT-006",
+"Material_Name":"Raw Material 6",
+"Material_Type":"Raw Material",
+"Supplier_ID":"SUP-006",
+"Specification_ID":"SPEC-006",
+"Unit_of_Measure":"kg",
+"Material_Status":"Active"
+},
+"equipment":{
+"Equipment_ID":"EQ-005",
+"Equipment_Type":"Bioreactor",
+"Site_ID":"SITE-01",
+"Configuration_ID":"CONFIG-A",
+"Capacity":1500,
+"Unit_of_Measure":"L",
+"Equipment_Status":"Active",
+"Last_Maintenance_Date":"2026-04-06",
+"Last_Calibration_Date":"2026-04-15"
+},
+"process_parameters":[
+{
+"Process_Record_ID":"PR-00361",
+"Batch_ID":"B-1031",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Temperature",
+"Target_Value":37,
+"Actual_Value":35.67,
+"Lower_Limit":35,
+"Upper_Limit":39,
+"Unit":"\u00b0C",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00362",
+"Batch_ID":"B-1031",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"pH",
+"Target_Value":7,
+"Actual_Value":6.96,
+"Lower_Limit":6.8,
+"Upper_Limit":7.2,
+"Unit":"pH",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00363",
+"Batch_ID":"B-1031",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Mixing Time",
+"Target_Value":40,
+"Actual_Value":39.35,
+"Lower_Limit":35,
+"Upper_Limit":45,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00364",
+"Batch_ID":"B-1031",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Pressure",
+"Target_Value":1,
+"Actual_Value":1.02,
+"Lower_Limit":0.8,
+"Upper_Limit":1.2,
+"Unit":"bar",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00365",
+"Batch_ID":"B-1031",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Flow Rate",
+"Target_Value":25,
+"Actual_Value":25.72,
+"Lower_Limit":20,
+"Upper_Limit":30,
+"Unit":"L/min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00366",
+"Batch_ID":"B-1031",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Hold Time",
+"Target_Value":60,
+"Actual_Value":60.94,
+"Lower_Limit":50,
+"Upper_Limit":70,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00367",
+"Batch_ID":"B-1031",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Conductivity",
+"Target_Value":5,
+"Actual_Value":5.08,
+"Lower_Limit":4,
+"Upper_Limit":6,
+"Unit":"mS/cm",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00368",
+"Batch_ID":"B-1031",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Filter Pressure",
+"Target_Value":1.5,
+"Actual_Value":1.49,
+"Lower_Limit":1,
+"Upper_Limit":2,
+"Unit":"bar",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00369",
+"Batch_ID":"B-1031",
+"Process_Step":"Formulation",
+"Parameter_Name":"Temperature",
+"Target_Value":20,
+"Actual_Value":20.88,
+"Lower_Limit":18,
+"Upper_Limit":22,
+"Unit":"\u00b0C",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00370",
+"Batch_ID":"B-1031",
+"Process_Step":"Formulation",
+"Parameter_Name":"Mixing Time",
+"Target_Value":30,
+"Actual_Value":29.85,
+"Lower_Limit":25,
+"Upper_Limit":35,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00371",
+"Batch_ID":"B-1031",
+"Process_Step":"Formulation",
+"Parameter_Name":"pH",
+"Target_Value":6.9,
+"Actual_Value":6.93,
+"Lower_Limit":6.7,
+"Upper_Limit":7.1,
+"Unit":"pH",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+},
+{
+"Process_Record_ID":"PR-00372",
+"Batch_ID":"B-1031",
+"Process_Step":"Formulation",
+"Parameter_Name":"Fill Rate",
+"Target_Value":100,
+"Actual_Value":97.21,
+"Lower_Limit":90,
+"Upper_Limit":110,
+"Unit":"units/min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-08"
+}
+],
+"quality_results":[
+{
+"Quality_Record_ID":"QR-00121",
+"Batch_ID":"B-1031",
+"Attribute_ID":"CQA-001",
+"Attribute_Name":"Product Purity",
+"Result_Value":93.6,
+"Specification_Lower":95,
+"Specification_Upper":100,
+"Unit":"%",
+"Result_Status":"OOS",
+"Test_Date":"2026-04-09"
+},
+{
+"Quality_Record_ID":"QR-00122",
+"Batch_ID":"B-1031",
+"Attribute_ID":"CQA-002",
+"Attribute_Name":"Potency",
+"Result_Value":98.74,
+"Specification_Lower":90,
+"Specification_Upper":110,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-04-10"
+},
+{
+"Quality_Record_ID":"QR-00123",
+"Batch_ID":"B-1031",
+"Attribute_ID":"CQA-003",
+"Attribute_Name":"Aggregate Level",
+"Result_Value":1.77,
+"Specification_Lower":0,
+"Specification_Upper":5,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-04-09"
+},
+{
+"Quality_Record_ID":"QR-00124",
+"Batch_ID":"B-1031",
+"Attribute_ID":"CQA-004",
+"Attribute_Name":"pH",
+"Result_Value":6.99,
+"Specification_Lower":6.7,
+"Specification_Upper":7.2,
+"Unit":"pH",
+"Result_Status":"Pass",
+"Test_Date":"2026-04-11"
+}
+],
+"deviations":[
+{
+"Deviation_ID":"DEV-031",
+"Batch_ID":"B-1031",
+"Category":"Process",
+"Severity":"Moderate",
+"Description":"Process temperature trend elevated",
+"Status":"Closed",
+"Resolution":"Process parameters reviewed"
+}
+],
+"investigations":[
+{
+"Investigation_ID":"INV-025",
+"Batch_ID":"B-1031",
+"Investigation_Type":"OOS",
+"Issue":"Product Purity",
+"Finding":"Higher process temperature observed versus comparable batches",
+"Evidence":"Upstream temperature = 38.2\u00b0C; historical median approximately 37.0\u00b0C",
+"Root_Cause_Category":"Process",
+"Corrective_Action":"Process parameter history reviewed",
+"Outcome":"Resolved",
+"Closure_Date":"2026-04-24"
+}
+]
+},
+"B-1038":{
+"batch":{
+"Batch_ID":"B-1038",
+"Product_ID":"PROD-001",
+"Site_ID":"SITE-01",
+"Batch_Date":"2026-04-29",
+"Batch_Size":1000,
+"Unit_of_Measure":"L",
+"Equipment_ID":"EQ-005",
+"Material_Lot_ID":"ML-038",
+"Batch_Status":"Released",
+"Overall_Result":"Pass"
+},
+"material_lot":{
+"Material_Lot_ID":"ML-038",
+"Material_ID":"MAT-004",
+"Supplier_ID":"SUP-004",
+"Manufacturing_Date":"2026-03-30",
+"Receipt_Date":"2026-04-24",
+"Expiry_Date":"2027-03-30",
+"Attribute_A":10.88,
+"Attribute_B":98.37,
+"Release_Status":"Released"
+},
+"material":{
+"Material_ID":"MAT-004",
+"Material_Name":"Raw Material 4",
+"Material_Type":"Raw Material",
+"Supplier_ID":"SUP-004",
+"Specification_ID":"SPEC-004",
+"Unit_of_Measure":"kg",
+"Material_Status":"Active"
+},
+"equipment":{
+"Equipment_ID":"EQ-005",
+"Equipment_Type":"Bioreactor",
+"Site_ID":"SITE-01",
+"Configuration_ID":"CONFIG-A",
+"Capacity":1500,
+"Unit_of_Measure":"L",
+"Equipment_Status":"Active",
+"Last_Maintenance_Date":"2026-04-06",
+"Last_Calibration_Date":"2026-04-15"
+},
+"process_parameters":[
+{
+"Process_Record_ID":"PR-00445",
+"Batch_ID":"B-1038",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Temperature",
+"Target_Value":37,
+"Actual_Value":36.9,
+"Lower_Limit":35,
+"Upper_Limit":39,
+"Unit":"\u00b0C",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00446",
+"Batch_ID":"B-1038",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"pH",
+"Target_Value":7,
+"Actual_Value":6.98,
+"Lower_Limit":6.8,
+"Upper_Limit":7.2,
+"Unit":"pH",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00447",
+"Batch_ID":"B-1038",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Mixing Time",
+"Target_Value":40,
+"Actual_Value":40.54,
+"Lower_Limit":35,
+"Upper_Limit":45,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00448",
+"Batch_ID":"B-1038",
+"Process_Step":"Upstream Processing",
+"Parameter_Name":"Pressure",
+"Target_Value":1,
+"Actual_Value":1,
+"Lower_Limit":0.8,
+"Upper_Limit":1.2,
+"Unit":"bar",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00449",
+"Batch_ID":"B-1038",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Flow Rate",
+"Target_Value":25,
+"Actual_Value":24.02,
+"Lower_Limit":20,
+"Upper_Limit":30,
+"Unit":"L/min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00450",
+"Batch_ID":"B-1038",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Hold Time",
+"Target_Value":60,
+"Actual_Value":61.93,
+"Lower_Limit":50,
+"Upper_Limit":70,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00451",
+"Batch_ID":"B-1038",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Conductivity",
+"Target_Value":5,
+"Actual_Value":4.92,
+"Lower_Limit":4,
+"Upper_Limit":6,
+"Unit":"mS/cm",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00452",
+"Batch_ID":"B-1038",
+"Process_Step":"Downstream Processing",
+"Parameter_Name":"Filter Pressure",
+"Target_Value":1.5,
+"Actual_Value":1.6,
+"Lower_Limit":1,
+"Upper_Limit":2,
+"Unit":"bar",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00453",
+"Batch_ID":"B-1038",
+"Process_Step":"Formulation",
+"Parameter_Name":"Temperature",
+"Target_Value":20,
+"Actual_Value":20.14,
+"Lower_Limit":18,
+"Upper_Limit":22,
+"Unit":"\u00b0C",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00454",
+"Batch_ID":"B-1038",
+"Process_Step":"Formulation",
+"Parameter_Name":"Mixing Time",
+"Target_Value":30,
+"Actual_Value":30.21,
+"Lower_Limit":25,
+"Upper_Limit":35,
+"Unit":"min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00455",
+"Batch_ID":"B-1038",
+"Process_Step":"Formulation",
+"Parameter_Name":"pH",
+"Target_Value":6.9,
+"Actual_Value":6.84,
+"Lower_Limit":6.7,
+"Upper_Limit":7.1,
+"Unit":"pH",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+},
+{
+"Process_Record_ID":"PR-00456",
+"Batch_ID":"B-1038",
+"Process_Step":"Formulation",
+"Parameter_Name":"Fill Rate",
+"Target_Value":100,
+"Actual_Value":97.48,
+"Lower_Limit":90,
+"Upper_Limit":110,
+"Unit":"units/min",
+"Parameter_Status":"Within Range",
+"Recorded_DateTime":"2026-04-29"
+}
+],
+"quality_results":[
+{
+"Quality_Record_ID":"QR-00149",
+"Batch_ID":"B-1038",
+"Attribute_ID":"CQA-001",
+"Attribute_Name":"Product Purity",
+"Result_Value":97.64,
+"Specification_Lower":95,
+"Specification_Upper":100,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-05-02"
+},
+{
+"Quality_Record_ID":"QR-00150",
+"Batch_ID":"B-1038",
+"Attribute_ID":"CQA-002",
+"Attribute_Name":"Potency",
+"Result_Value":97.18,
+"Specification_Lower":90,
+"Specification_Upper":110,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-05-02"
+},
+{
+"Quality_Record_ID":"QR-00151",
+"Batch_ID":"B-1038",
+"Attribute_ID":"CQA-003",
+"Attribute_Name":"Aggregate Level",
+"Result_Value":1.94,
+"Specification_Lower":0,
+"Specification_Upper":5,
+"Unit":"%",
+"Result_Status":"Pass",
+"Test_Date":"2026-05-03"
+},
+{
+"Quality_Record_ID":"QR-00152",
+"Batch_ID":"B-1038",
+"Attribute_ID":"CQA-004",
+"Attribute_Name":"pH",
+"Result_Value":6.97,
+"Specification_Lower":6.7,
+"Specification_Upper":7.2,
+"Unit":"pH",
+"Result_Status":"Pass",
+"Test_Date":"2026-05-03"
+}
+],
+"deviations":[],
+"investigations":[
+{
+"Investigation_ID":"INV-033",
+"Batch_ID":"B-1038",
+"Investigation_Type":"OOS",
+"Issue":"Product Purity",
+"Finding":"Laboratory investigation identified an analytical handling issue",
+"Evidence":"Testing records indicated an analytical preparation error",
+"Root_Cause_Category":"Laboratory",
+"Corrective_Action":"Retest performed following investigation procedure",
+"Outcome":"Resolved",
+"Closure_Date":"2026-05-21"
+}
+]
+}
+},
+"benchmarks":{
+"process":{
+"Upstream Processing":{
+"Temperature":{
+"median":36.97,
+"min":35.6,
+"max":38.4,
+"n":120
+},
+"pH":{
+"median":6.99,
+"min":6.85,
+"max":7.18,
+"n":120
+},
+"Mixing Time":{
+"median":39.67,
+"min":36.37,
+"max":43,
+"n":120
+},
+"Pressure":{
+"median":0.99,
+"min":0.87,
+"max":1.12,
+"n":120
+}
+},
+"Downstream Processing":{
+"Flow Rate":{
+"median":25.12,
+"min":21.74,
+"max":28.42,
+"n":120
+},
+"Hold Time":{
+"median":60.57,
+"min":54.7,
+"max":70.79,
+"n":120
+},
+"Conductivity":{
+"median":4.98,
+"min":4.32,
+"max":5.73,
+"n":120
+},
+"Filter Pressure":{
+"median":1.5,
+"min":1.22,
+"max":1.83,
+"n":120
+}
+},
+"Formulation":{
+"Temperature":{
+"median":19.96,
+"min":18.5,
+"max":21.26,
+"n":120
+},
+"Mixing Time":{
+"median":30.11,
+"min":27.65,
+"max":32.72,
+"n":120
+},
+"pH":{
+"median":6.91,
+"min":6.79,
+"max":7,
+"n":120
+},
+"Fill Rate":{
+"median":99.43,
+"min":93.11,
+"max":105.26,
+"n":120
+}
+}
+},
+"quality":{
+"Product Purity":{
+"median":98.03,
+"min":92.4,
+"max":99.99,
+"n":120
+},
+"Potency":{
+"median":98.97,
+"min":95.94,
+"max":102.29,
+"n":120
+},
+"Aggregate Level":{
+"median":1.96,
+"min":0.81,
+"max":3.74,
+"n":120
+},
+"pH":{
+"median":6.95,
+"min":6.83,
+"max":7.1,
+"n":120
+}
+},
+"material_attribute_a":{
+"median":10.41,
+"min":9.77,
+"max":11.8,
+"n":120
+},
+"material_attribute_b":{
+"median":97.93,
+"min":96.56,
+"max":99.08,
+"n":120
+}
+},
+"equipment_configs":{
+"counts":{
+"CONFIG-C":22,
+"CONFIG-A":65,
+"CONFIG-B":33
+},
+"pass_counts":{
+"CONFIG-C":22,
+"CONFIG-A":65,
+"CONFIG-B":32
+}
+},
+"all_investigations":[
+{
+"Investigation_ID":"INV-017",
+"Batch_ID":"B-1017",
+"Investigation_Type":"OOS",
+"Issue":"Product Purity",
+"Finding":"Material Attribute A was elevated compared with historical range",
+"Evidence":"Attribute A = 11.7 versus historical median around 10.4",
+"Root_Cause_Category":"Material",
+"Corrective_Action":"Material lot reviewed and supplier information assessed",
+"Outcome":"Resolved",
+"Closure_Date":"2026-03-07"
+},
+{
+"Investigation_ID":"INV-021",
+"Batch_ID":"B-1028",
+"Investigation_Type":"OOS",
+"Issue":"Product Purity",
+"Finding":"Equipment configuration differed from most comparable batches",
+"Evidence":"EQ-008 used CONFIG-B; comparable successful batches primarily used CONFIG-A",
+"Root_Cause_Category":"Equipment",
+"Corrective_Action":"Equipment configuration assessed",
+"Outcome":"Resolved",
+"Closure_Date":"2026-04-12"
+},
+{
+"Investigation_ID":"INV-025",
+"Batch_ID":"B-1031",
+"Investigation_Type":"OOS",
+"Issue":"Product Purity",
+"Finding":"Higher process temperature observed versus comparable batches",
+"Evidence":"Upstream temperature = 38.2\u00b0C; historical median approximately 37.0\u00b0C",
+"Root_Cause_Category":"Process",
+"Corrective_Action":"Process parameter history reviewed",
+"Outcome":"Resolved",
+"Closure_Date":"2026-04-24"
+},
+{
+"Investigation_ID":"INV-029",
+"Batch_ID":"B-1040",
+"Investigation_Type":"Deviation",
+"Issue":"Process",
+"Finding":"No significant quality impact identified",
+"Evidence":"Observed variation remained within established operating limits",
+"Root_Cause_Category":"No Assignable Cause",
+"Corrective_Action":"Continued monitoring",
+"Outcome":"Resolved",
+"Closure_Date":"2026-05-24"
+},
+{
+"Investigation_ID":"INV-033",
+"Batch_ID":"B-1038",
+"Investigation_Type":"OOS",
+"Issue":"Product Purity",
+"Finding":"Laboratory investigation identified an analytical handling issue",
+"Evidence":"Testing records indicated an analytical preparation error",
+"Root_Cause_Category":"Laboratory",
+"Corrective_Action":"Retest performed following investigation procedure",
+"Outcome":"Resolved",
+"Closure_Date":"2026-05-21"
+}
+],
+"total_batches":120
+}
+</script>
+<script>
+// ---------------------------------------------------------------
+// Investigation Intelligence Workspace — prototype logic
+// Data source: MERCK_PoC1_Synthetic_Batch_Investigation_Data.xlsx (synthetic)
+// ---------------------------------------------------------------
+const DATA = JSON.parse(document.getElementById('proto-data').textContent);
+const shell = document.getElementById('shell');
+
+const state = {
+  screen: 'workspace',   // 'workspace' | 'investigation'
+  batchId: 'B-1043',
+  section: 'overview'    // overview | different | historical | investigations | evidence
+};
+
+// ---------- helpers ----------
+function fmt(v, d = 2) {
+  if (v === null || v === undefined) return '—';
+  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(d);
+  return v;
+}
+function catClass(cat) {
+  if (!cat) return 'none';
+  const c = cat.toLowerCase();
+  if (c.includes('material')) return 'material';
+  if (c.includes('equip')) return 'equipment';
+  if (c.includes('process')) return 'process';
+  if (c.includes('lab')) return 'laboratory';
+  return 'none';
+}
+function batchRec(id) { return DATA.batches[id]; }
+
+function deltaTag(actual, bench, higherIsFlag = true) {
+  if (!bench) return '';
+  const diff = actual - bench.median;
+  const pct = Math.abs(diff / bench.median * 100).toFixed(0);
+  if (Math.abs(diff) < bench.median * 0.005) return `<span class="delta-ok">≈ median</span>`;
+  const dir = diff > 0 ? '▲' : '▼';
+  const cls = 'delta-up';
+  return `<span class="${cls}">${dir} ${pct}% vs median</span>`;
+}
+
+// ---------- SCREEN: Workspace ----------
+function renderWorkspace() {
+  const b43 = batchRec('B-1043');
+  const resolvedIds = ['B-1017', 'B-1028', 'B-1031', 'B-1038'];
+
+  shell.innerHTML = `
+    <div class="crumbs"><span class="current">Investigation Workspace</span></div>
+
+    <div class="ws-hero">
+      <div class="ws-hero-left">
+        <div class="ws-hero-eyebrow">OPEN INVESTIGATION · REQUIRES REVIEW</div>
+        <h2>Batch B-1043 — Product Purity result is out of specification</h2>
+        <p>Result 92.4% against a specification of 95.0–100.0%. The batch is currently held under investigation. Relevant material, process, equipment and historical context has been assembled below to support review.</p>
+        <div class="ws-hero-stats">
+          <div class="ws-hero-stat"><div class="n">92.4%</div><div class="l">Product Purity result</div></div>
+          <div class="ws-hero-stat"><div class="n">95.0%</div><div class="l">Lower specification limit</div></div>
+          <div class="ws-hero-stat"><div class="n">3</div><div class="l">Comparable historical cases found</div></div>
+        </div>
+      </div>
+      <button class="btn primary" onclick="openInvestigation('B-1043')">Open investigation →</button>
+    </div>
+
+    <div class="queue-section">
+      <h3>Recently resolved investigations — this product</h3>
+      <div class="panel">
+        <div class="panel-body" style="padding:6px 18px;">
+          ${resolvedIds.map(id => {
+            const r = batchRec(id);
+            const inv = r.investigations[0];
+            return `<div class="queue-row">
+              <div class="queue-row-left">
+                <div class="queue-id">${id}</div>
+                <div class="queue-meta">${r.batch.Batch_Date} · Product Purity ${r.quality_results.find(q=>q.Attribute_Name==='Product Purity').Result_Value}% (initial result)</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:14px;">
+                <span class="category-chip ${catClass(inv ? inv.Root_Cause_Category : null)}">${inv ? inv.Root_Cause_Category : '—'}</span>
+                <span class="queue-outcome">Released</span>
+                <button class="btn subtle" onclick="openHistoricalOverlay('${id}')">View</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+
+    <footer class="foot">Investigation Intelligence Workspace — prototype built on synthetic PoC data. Not a validated system. All values shown originate from the supplied dataset.</footer>
+  `;
+}
+
+// ---------- SCREEN: Investigation shell ----------
+const SECTIONS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'different', label: 'What is different' },
+  { id: 'historical', label: 'Historical comparison' },
+  { id: 'investigations', label: 'Previous investigations' },
+  { id: 'evidence', label: 'Evidence trail' }
+];
+
+function openInvestigation(id) {
+  state.screen = 'investigation';
+  state.batchId = id;
+  state.section = 'overview';
+  render();
+}
+
+function setSection(s) {
+  state.section = s;
+  render();
+}
+
+function renderInvestigationShell() {
+  const rec = batchRec(state.batchId);
+  const b = rec.batch;
+  const purity = rec.quality_results.find(q => q.Attribute_Name === 'Product Purity');
+  const isOOS = b.Overall_Result === 'OOS';
+
+  shell.innerHTML = `
+    <div class="crumbs">
+      <button onclick="backToWorkspace()">Investigation Workspace</button>
+      <span class="sep">/</span>
+      <span class="current">${b.Batch_ID}</span>
+    </div>
+
+    <div class="inv-header">
+      <div class="inv-title-row">
+        <div class="inv-title">
+          <h1>${b.Batch_ID}</h1>
+          <span class="status-pill ${isOOS ? 'oos' : 'pass'}">${b.Batch_Status.toUpperCase()}</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <span class="tag">${b.Product_ID}</span>
+          <span class="tag">${b.Site_ID}</span>
+          <span class="tag">${b.Equipment_ID}</span>
+        </div>
+      </div>
+      <div class="inv-meta">Batch date ${b.Batch_Date} · ${b.Batch_Size} ${b.Unit_of_Measure} · Material lot ${b.Material_Lot_ID}</div>
+    </div>
+
+    <div class="section-nav">
+      ${SECTIONS.map(s => `<button class="${state.section === s.id ? 'active' : ''}" onclick="setSection('${s.id}')">${s.label}</button>`).join('')}
+    </div>
+
+    <div class="section-body" id="section-body"></div>
+  `;
+
+  const body = document.getElementById('section-body');
+  if (state.section === 'overview') body.innerHTML = renderOverview(rec);
+  if (state.section === 'different') body.innerHTML = renderWhatIsDifferent(rec);
+  if (state.section === 'historical') body.innerHTML = renderHistorical(rec);
+  if (state.section === 'investigations') body.innerHTML = renderPreviousInvestigations(rec);
+  if (state.section === 'evidence') body.innerHTML = renderEvidenceTrail(rec);
+
+  if (state.section === 'investigations') attachInvCardHandlers();
+}
+
+function backToWorkspace() {
+  state.screen = 'workspace';
+  render();
+}
+
+// ---------- Overview ----------
+function renderOverview(rec) {
+  const b = rec.batch, ml = rec.material_lot, mat = rec.material, eq = rec.equipment;
+  const purity = rec.quality_results.find(q => q.Attribute_Name === 'Product Purity');
+  const otherResults = rec.quality_results.filter(q => q.Attribute_Name !== 'Product Purity');
+
+  return `
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-head"><h3>Batch record</h3></div>
+        <div class="panel-body">
+          <dl class="kv">
+            <dt>Batch ID</dt><dd class="mono">${b.Batch_ID}</dd>
+            <dt>Product</dt><dd>${b.Product_ID}</dd>
+            <dt>Site</dt><dd>${b.Site_ID}</dd>
+            <dt>Batch date</dt><dd>${b.Batch_Date}</dd>
+            <dt>Batch size</dt><dd>${b.Batch_Size} ${b.Unit_of_Measure}</dd>
+            <dt>Equipment</dt><dd class="mono">${eq.Equipment_ID} <span style="color:var(--ink-faint);font-family:var(--sans);">(${eq.Equipment_Type}, ${eq.Configuration_ID})</span></dd>
+            <dt>Material lot</dt><dd class="mono">${ml.Material_Lot_ID} <span style="color:var(--ink-faint);font-family:var(--sans);">(${mat.Material_Name})</span></dd>
+            <dt>Batch status</dt><dd>${b.Batch_Status}</dd>
+            <dt>Overall result</dt><dd>${b.Overall_Result}</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="panel" style="border-color:var(--flag-soft-line);">
+        <div class="panel-head" style="background:var(--flag-soft);border-bottom-color:var(--flag-soft-line);">
+          <h3 style="color:var(--flag);">Quality issue</h3>
+          <span class="tag flag">OOS</span>
+        </div>
+        <div class="panel-body">
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;">
+            <div style="font-family:var(--mono);font-size:34px;font-weight:600;color:var(--flag);">${purity.Result_Value}%</div>
+            <div style="color:var(--ink-faint);font-size:12.5px;">Product Purity · spec ${purity.Specification_Lower}–${purity.Specification_Upper}% · tested ${purity.Test_Date}</div>
+          </div>
+          <p style="margin:0 0 14px;color:var(--ink-soft);font-size:13.5px;">
+            Result is ${(purity.Specification_Lower - purity.Result_Value).toFixed(1)} percentage points below the lower specification limit.
+          </p>
+          <div class="small-label">Other quality results — this batch</div>
+          <table>
+            <thead><tr><th>Attribute</th><th class="num">Result</th><th class="num">Spec range</th><th>Status</th></tr></thead>
+            <tbody>
+              ${otherResults.map(q => `<tr>
+                <td>${q.Attribute_Name}</td>
+                <td class="num mono">${fmt(q.Result_Value)}${q.Unit === '%' ? '%' : ''}</td>
+                <td class="num mono">${fmt(q.Specification_Lower)}–${fmt(q.Specification_Upper)}</td>
+                <td>${q.Result_Status}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;" class="assist-strip">
+      ${assistIcon()}
+      <div>
+        <div class="assist-label">DRAFT INVESTIGATION SUMMARY — FOR REVIEW</div>
+        <p>B-1043 (PROD-001, SITE-01) returned an out-of-specification Product Purity result of 92.4% on ${purity.Test_Date}. A minor process deviation was logged for elevated upstream temperature trend. Three historical batches with comparable material, process or equipment characteristics have been identified for comparison — see <a href="#" onclick="setSection('historical');return false;" style="color:var(--accent);">Historical comparison</a>. This summary reflects the underlying batch records; it is not an assessment of root cause.</p>
+      </div>
+    </div>
+
+    ${rec.deviations.length ? `
+    <div style="margin-top:20px;" class="panel">
+      <div class="panel-head"><h3>Related deviation</h3></div>
+      <div class="panel-body">
+        ${rec.deviations.map(d => `
+          <div style="display:flex;gap:14px;align-items:baseline;">
+            <span class="tag">${d.Deviation_ID}</span>
+            <span class="category-chip ${catClass(d.Category)}">${d.Category}</span>
+            <span style="color:var(--ink-soft);">${d.Description}</span>
+            <span style="margin-left:auto;color:var(--ink-faint);font-size:12.5px;">${d.Status} · ${d.Resolution}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : ''}
+  `;
+}
+
+function assistIcon() {
+  return `<svg class="assist-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 2L11.8 7.2L17 9L11.8 10.8L10 16L8.2 10.8L3 9L8.2 7.2L10 2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+// ---------- What is different ----------
+function renderWhatIsDifferent(rec) {
+  const b = rec.batch;
+  const bench = DATA.benchmarks;
+  const steps = {};
+  rec.process_parameters.forEach(p => {
+    steps[p.Process_Step] = steps[p.Process_Step] || [];
+    steps[p.Process_Step].push(p);
+  });
+
+  function rowsFor(step, params) {
+    return params.map(p => {
+      const bm = bench.process[step] ? bench.process[step][p.Parameter_Name] : null;
+      const nearLimit = bm && (p.Actual_Value >= p.Upper_Limit - (p.Upper_Limit - p.Lower_Limit) * 0.08 ||
+                                 p.Actual_Value <= p.Lower_Limit + (p.Upper_Limit - p.Lower_Limit) * 0.08);
+      return `<tr>
+        <td style="padding-left:18px;">${p.Parameter_Name}</td>
+        <td class="num mono">${fmt(p.Actual_Value)} ${p.Unit}</td>
+        <td class="num mono" style="color:var(--ink-faint);">${bm ? fmt(bm.median) : '—'}</td>
+        <td class="num mono" style="color:var(--ink-faint);">${bm ? `${fmt(bm.min)}–${fmt(bm.max)}` : '—'}</td>
+        <td style="padding-right:18px;">${bm ? deltaTag(p.Actual_Value, bm) : ''} ${nearLimit ? '<span class="tag flag" style="margin-left:6px;">near limit</span>' : ''}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const ml = rec.material_lot;
+  const attrABench = bench.material_attribute_a;
+  const attrBBench = bench.material_attribute_b;
+
+  return `
+    <div class="caution" style="margin-bottom:20px;">
+      <span>&#9888;</span>
+      <div>This view compares B-1043's recorded values against the median and observed range across all historical batches of PROD-001. Differences shown are observational — they indicate where this batch sits relative to history, not a cause of the quality result.</div>
+    </div>
+
+    ${Object.entries(steps).map(([step, params]) => `
+      <div class="panel" style="margin-bottom:18px;">
+        <div class="panel-head"><h3>${step}</h3><span class="hint">process parameters</span></div>
+        <div class="panel-body" style="padding:0;">
+          <table>
+            <thead><tr><th style="padding-left:18px;">Parameter</th><th class="num">B-1043</th><th class="num">Historical median</th><th class="num">Historical range</th><th style="padding-right:18px;">Comparison</th></tr></thead>
+            <tbody>${rowsFor(step, params)}</tbody>
+          </table>
+        </div>
+      </div>
+    `).join('')}
+
+    <div class="panel">
+      <div class="panel-head"><h3>Material lot characteristics</h3><span class="hint">${ml.Material_Lot_ID} · ${rec.material.Material_Name}</span></div>
+      <div class="panel-body">
+        <div class="grid-3">
+          <div class="stat-block">
+            <div class="num-lg">${fmt(ml.Attribute_A)}</div>
+            <div class="num-label">Attribute A (this lot) — median ${fmt(attrABench.median)}, range ${fmt(attrABench.min)}–${fmt(attrABench.max)}</div>
+          </div>
+          <div class="stat-block">
+            <div class="num-lg">${fmt(ml.Attribute_B)}</div>
+            <div class="num-label">Attribute B (this lot) — median ${fmt(attrBBench.median)}, range ${fmt(attrBBench.min)}–${fmt(attrBBench.max)}</div>
+          </div>
+          <div class="stat-block">
+            <div class="num-lg mono" style="font-size:16px;">${rec.equipment.Configuration_ID}</div>
+            <div class="num-label">Equipment configuration — ${DATA.equipment_configs.counts[rec.equipment.Configuration_ID]} of ${DATA.total_batches} historical batches used this configuration</div>
+          </div>
+        </div>
+        <p style="margin:14px 0 0;color:var(--ink-soft);font-size:13.5px;">
+          Lot ${ml.Material_Lot_ID}'s Attribute A (${fmt(ml.Attribute_A)}) sits close to the historical median (${fmt(attrABench.median)}) and does not show the elevation seen in some historical material-related cases — see <a href="#" onclick="setSection('historical');return false;" style="color:var(--accent);">Historical comparison</a> for the specific case where Attribute A was materially elevated.
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+// ---------- Historical comparison ----------
+const HIST_BATCHES = [
+  {
+    id: 'B-1017',
+    why: `Historical Product Purity investigation on this product line involving an elevated Material Attribute A. Included for material-pattern comparison, though B-1043's own lot does not show the same elevation.`,
+    category: 'Material'
+  },
+  {
+    id: 'B-1028',
+    why: `Same equipment (EQ-007, CONFIG-B) as B-1043. Previous OOS investigation on this equipment configuration found it differed from the configuration used by most comparable successful batches.`,
+    category: 'Equipment'
+  },
+  {
+    id: 'B-1031',
+    why: `Historical Product Purity investigation citing an elevated process temperature versus comparable batches — included for process-pattern comparison. B-1043's own upstream temperature (38.4°C) is the highest recorded for this step across all historical batches.`,
+    category: 'Process'
+  }
+];
+
+function renderHistorical(rec) {
+  return `
+    <div class="caution" style="margin-bottom:20px;">
+      <span>&#9888;</span>
+      <div>The batches below share a material, process or equipment characteristic with B-1043, or a prior investigation record relevant to this issue type. Similarity is evidence to consider, not proof that the same factor explains B-1043.</div>
+    </div>
+    <div class="grid-3" style="align-items:stretch;">
+      ${HIST_BATCHES.map(h => {
+        const r = batchRec(h.id);
+        const purity = r.quality_results.find(q => q.Attribute_Name === 'Product Purity');
+        return `<div class="hist-card">
+          <div class="hist-card-top">
+            <div>
+              <div class="hist-card-id">${h.id}</div>
+              <div style="color:var(--ink-faint);font-size:12px;">${r.batch.Batch_Date} · ${r.equipment.Equipment_ID} (${r.equipment.Configuration_ID})</div>
+            </div>
+            <span class="category-chip ${catClass(h.category)}">${h.category}</span>
+          </div>
+          <div class="hist-card-why">${h.why}</div>
+          <div class="hist-card-foot">
+            <span class="tag">Purity: ${purity.Result_Value}% (initial)</span>
+            <button class="btn subtle" onclick="openHistoricalOverlay('${h.id}')">Open batch →</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div style="margin-top:20px;" class="assist-strip">
+      ${assistIcon()}
+      <div>
+        <div class="assist-label">WHY THESE BATCHES</div>
+        <p>These three were identified by matching B-1043 against the same product line's investigation history on shared equipment, elevated process parameters, and material lot attributes. No other historical batch on this equipment or material combination returned a comparable pattern.</p>
+      </div>
+    </div>
+  `;
+}
+
+// ---------- Previous investigations ----------
+function renderPreviousInvestigations(rec) {
+  const invs = DATA.all_investigations.filter(i => ['B-1017', 'B-1028', 'B-1031', 'B-1038'].includes(i.Batch_ID));
+  return `
+    <div class="caution" style="margin-bottom:20px;">
+      <span>&#9888;</span>
+      <div>Relevant closed investigations on this product line. Each was resolved independently — shown here because the issue type or evidence pattern relates to B-1043's current investigation.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      ${invs.map(inv => `
+        <div class="inv-card" id="card-${inv.Investigation_ID}">
+          <div class="inv-card-head" onclick="toggleInv('${inv.Investigation_ID}')">
+            <div class="inv-card-head-left">
+              <span class="mono" style="font-weight:600;">${inv.Investigation_ID}</span>
+              <span class="tag">${inv.Batch_ID}</span>
+              <span class="category-chip ${catClass(inv.Root_Cause_Category)}">${inv.Root_Cause_Category}</span>
+              <span style="color:var(--ink-soft);">${inv.Issue}</span>
+            </div>
+            <span class="chev">&#8250;</span>
+          </div>
+          <div class="inv-card-body">
+            <div class="kv" style="grid-template-columns:130px 1fr;">
+              <dt>Finding</dt><dd>${inv.Finding}</dd>
+              <dt>Evidence</dt><dd>${inv.Evidence}</dd>
+              <dt>Corrective action</dt><dd>${inv.Corrective_Action}</dd>
+              <dt>Outcome</dt><dd>${inv.Outcome} · closed ${inv.Closure_Date}</dd>
+            </div>
+            <div style="margin-top:12px;">
+              <button class="btn subtle" onclick="openHistoricalOverlay('${inv.Batch_ID}')">View related batch (${inv.Batch_ID}) →</button>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+function toggleInv(id) {
+  const card = document.getElementById(`card-${id}`);
+  card.classList.toggle('expanded');
+}
+function attachInvCardHandlers() { /* handled via inline onclick */ }
+
+// ---------- Evidence trail ----------
+function renderEvidenceTrail(rec) {
+  const purity = rec.quality_results.find(q => q.Attribute_Name === 'Product Purity');
+  const upTemp = rec.process_parameters.find(p => p.Parameter_Name === 'Temperature' && p.Process_Step === 'Upstream Processing');
+  const bench = DATA.benchmarks.process['Upstream Processing'].Temperature;
+  const inv1017 = DATA.batches['B-1017'].investigations[0];
+  const inv1028 = DATA.batches['B-1028'].investigations[0];
+  const inv1031 = DATA.batches['B-1031'].investigations[0];
+
+  return `
+    <div class="grid-2" style="grid-template-columns:1fr 1fr;gap:28px;">
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h3>Evidence chain — Process / Equipment path</h3></div>
+          <div class="panel-body">
+            <div class="flow">
+              <div class="flow-item">
+                <div class="flow-dot"></div>
+                <div class="flow-label">1 · CURRENT OBSERVATION</div>
+                <div class="flow-title">Product Purity 92.4% — below the 95.0% lower specification limit</div>
+                <div class="flow-text">Recorded on B-1043, tested ${purity.Test_Date}.</div>
+                <div class="flow-source"><span class="tag">Source: Quality_Results · ${purity.Quality_Record_ID}</span></div>
+              </div>
+              <div class="flow-item">
+                <div class="flow-dot"></div>
+                <div class="flow-label">2 · HISTORICAL COMPARISON</div>
+                <div class="flow-title">Upstream temperature 38.4°C is the highest recorded value for this step</div>
+                <div class="flow-text">Historical median ${bench.median}°C across ${bench.n} records; range ${bench.min}–${bench.max}°C. B-1043 sits at the top of the observed range, within the 39°C upper process limit. Equipment EQ-007 (CONFIG-B) was also used by historical batch B-1028.</div>
+                <div class="flow-source"><span class="tag">Source: Process_Parameters · ${upTemp.Process_Record_ID}</span> <span class="tag">Source: Equipment_Master · EQ-007</span></div>
+              </div>
+              <div class="flow-item">
+                <div class="flow-dot"></div>
+                <div class="flow-label">3 · PREVIOUS INVESTIGATIONS</div>
+                <div class="flow-title">Two closed investigations relate to this pattern</div>
+                <div class="flow-text"><strong>${inv1031.Investigation_ID}</strong> (B-1031, Process): ${inv1031.Finding}.<br><strong>${inv1028.Investigation_ID}</strong> (B-1028, Equipment): ${inv1028.Finding}.</div>
+                <div class="flow-source"><span class="tag">Source: Investigations · ${inv1031.Investigation_ID}</span> <span class="tag">Source: Investigations · ${inv1028.Investigation_ID}</span></div>
+              </div>
+              <div class="flow-item">
+                <div class="flow-dot" style="border-color:var(--amber);"></div>
+                <div class="flow-label" style="color:var(--amber);">4 · REQUIRES INVESTIGATOR ASSESSMENT</div>
+                <div class="flow-title">Potential contributing factor — not established as root cause</div>
+                <div class="flow-text">Process and equipment evidence is directionally consistent with two prior resolved cases. Insufficient evidence exists in the current record to establish causality; investigator review of the full batch record is required before a conclusion is reached.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h3>Evidence chain — Material path</h3></div>
+          <div class="panel-body">
+            <div class="flow">
+              <div class="flow-item">
+                <div class="flow-dot"></div>
+                <div class="flow-label">1 · CURRENT OBSERVATION</div>
+                <div class="flow-title">Material lot ML-082 · Attribute A = ${rec.material_lot.Attribute_A}</div>
+                <div class="flow-text">Historical median ${DATA.benchmarks.material_attribute_a.median}, range ${DATA.benchmarks.material_attribute_a.min}–${DATA.benchmarks.material_attribute_a.max}.</div>
+                <div class="flow-source"><span class="tag">Source: Material_Lots · ML-082</span></div>
+              </div>
+              <div class="flow-item">
+                <div class="flow-dot"></div>
+                <div class="flow-label">2 · HISTORICAL COMPARISON</div>
+                <div class="flow-title">This lot's Attribute A sits close to the historical median</div>
+                <div class="flow-text">It does not show the elevation seen in lot ML-017 (Attribute A = ${DATA.batches['B-1017'].material_lot.Attribute_A}), which was investigated on batch B-1017.</div>
+                <div class="flow-source"><span class="tag">Source: Material_Lots · ML-017</span></div>
+              </div>
+              <div class="flow-item">
+                <div class="flow-dot"></div>
+                <div class="flow-label">3 · PREVIOUS INVESTIGATION</div>
+                <div class="flow-title">${inv1017.Investigation_ID} (B-1017, Material)</div>
+                <div class="flow-text">${inv1017.Finding}. Evidence: ${inv1017.Evidence}.</div>
+                <div class="flow-source"><span class="tag">Source: Investigations · ${inv1017.Investigation_ID}</span></div>
+              </div>
+              <div class="flow-item">
+                <div class="flow-dot" style="border-color:var(--ink-faint);"></div>
+                <div class="flow-label" style="color:var(--ink-faint);">4 · ASSESSMENT</div>
+                <div class="flow-title">Insufficient evidence to link this batch's material lot to the issue</div>
+                <div class="flow-text">A relevant material-related investigation exists on this product line, but B-1043's own lot attribute does not show the elevation associated with that prior case. Material is a weaker line of evidence for this batch than process or equipment.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;" class="assist-strip">
+      ${assistIcon()}
+      <div>
+        <div class="assist-label">SYSTEM NOTE</div>
+        <p>Ground-truth guidance for this scenario requires that causality not be asserted. The chains above stop at "requires investigator assessment" by design — the investigator determines whether process, equipment, material, or a combination should be pursued further.</p>
+      </div>
+    </div>
+  `;
+}
+
+// ---------- Overlays ----------
+function openHistoricalOverlay(id) {
+  const rec = batchRec(id);
+  const b = rec.batch;
+  const purity = rec.quality_results.find(q => q.Attribute_Name === 'Product Purity');
+  const inv = rec.investigations[0];
+
+  document.getElementById('overlay-title').textContent = `${id} — batch record`;
+  document.getElementById('overlay-body').innerHTML = `
+    <div class="kv" style="margin-bottom:18px;">
+      <dt>Product</dt><dd>${b.Product_ID}</dd>
+      <dt>Batch date</dt><dd>${b.Batch_Date}</dd>
+      <dt>Equipment</dt><dd class="mono">${rec.equipment.Equipment_ID} (${rec.equipment.Configuration_ID})</dd>
+      <dt>Material lot</dt><dd class="mono">${rec.material_lot.Material_Lot_ID} — ${rec.material.Material_Name}</dd>
+      <dt>Final status</dt><dd>${b.Batch_Status} · ${b.Overall_Result}</dd>
+    </div>
+
+    <div class="small-label">Quality results</div>
+    <table style="margin-bottom:18px;">
+      <thead><tr><th>Attribute</th><th class="num">Result</th><th class="num">Spec</th><th>Status</th></tr></thead>
+      <tbody>${rec.quality_results.map(q => `<tr><td>${q.Attribute_Name}</td><td class="num mono">${fmt(q.Result_Value)}</td><td class="num mono">${fmt(q.Specification_Lower)}–${fmt(q.Specification_Upper)}</td><td>${q.Result_Status}</td></tr>`).join('')}</tbody>
+    </table>
+
+    <div class="small-label">Material lot attributes</div>
+    <div class="grid-3" style="margin-bottom:18px;">
+      <div class="stat-block"><div class="num-lg">${fmt(rec.material_lot.Attribute_A)}</div><div class="num-label">Attribute A</div></div>
+      <div class="stat-block"><div class="num-lg">${fmt(rec.material_lot.Attribute_B)}</div><div class="num-label">Attribute B</div></div>
+      <div class="stat-block"><div class="num-lg mono" style="font-size:16px;">${rec.equipment.Configuration_ID}</div><div class="num-label">Equipment config</div></div>
+    </div>
+
+    ${inv ? `
+    <div class="small-label">Investigation record</div>
+    <div class="panel" style="border-color:var(--line);">
+      <div class="panel-body">
+        <div class="kv" style="grid-template-columns:130px 1fr;">
+          <dt>ID</dt><dd class="mono">${inv.Investigation_ID}</dd>
+          <dt>Issue</dt><dd>${inv.Issue}</dd>
+          <dt>Finding</dt><dd>${inv.Finding}</dd>
+          <dt>Evidence</dt><dd>${inv.Evidence}</dd>
+          <dt>Root cause category</dt><dd><span class="category-chip ${catClass(inv.Root_Cause_Category)}">${inv.Root_Cause_Category}</span></dd>
+          <dt>Corrective action</dt><dd>${inv.Corrective_Action}</dd>
+          <dt>Outcome</dt><dd>${inv.Outcome} · ${inv.Closure_Date}</dd>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <div class="divider"></div>
+    <button class="btn" onclick="closeOverlay()">Close</button>
+  `;
+  document.getElementById('scrim').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeOverlay() {
+  document.getElementById('scrim').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+document.getElementById('scrim').addEventListener('click', closeOverlay);
+document.getElementById('overlay-close').addEventListener('click', closeOverlay);
+
+// ---------- Router ----------
+function render() {
+  window.scrollTo(0, 0);
+  if (state.screen === 'workspace') renderWorkspace();
+  else renderInvestigationShell();
+}
+
+render();
+
+</script>
+</body>
+</html>
